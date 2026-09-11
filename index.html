@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -222,6 +221,24 @@
     .route-bar{left:16px;right:16px;}
     .search-bar{left:16px;}
     .search-status{left:16px;}
+    .mobile-view-fab{ display:none !important; }
+  }
+
+  /* --- mobile: map and list are full-screen alternating panes, not stacked --- */
+  .mobile-view-fab{
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(64px + env(safe-area-inset-bottom) + 12px);
+    z-index:800; background:var(--navy-deep); color:#fff; border:none; border-radius:24px;
+    padding:12px 22px; font-size:0.86rem; font-weight:700; box-shadow:var(--shadow-md);
+    cursor:pointer; touch-action:manipulation; display:none; align-items:center; gap:6px;
+  }
+  .mobile-view-fab:active{ transform:translateX(-50%) scale(0.96); }
+  @media (max-width:779px){
+    main.view-map #map-wrap{ flex:1; height:auto; min-height:0; }
+    main.view-map.mview-list #map-wrap{ display:none; }
+    main.view-map.mview-map #sidebar{ display:none; }
+    main.view-map .mobile-view-fab{ display:flex; }
+    #sidebar{ padding-bottom:90px; }
   }
 </style>
 </head>
@@ -281,6 +298,8 @@
     </div>
   </div>
 </main>
+
+<button class="mobile-view-fab" id="mobile-view-fab">🗺️ <span id="mobile-view-fab-label">Карта</span></button>
 
 <div class="bottomnav" id="bottomnav">
   <button class="bn-item active" data-view="map">🗺️<span>Карта</span></button>
@@ -471,12 +490,12 @@ function makeSearchIcon(){
 const hotelMarker = L.marker([HOTEL.lat, HOTEL.lng], {icon: makeHotelIcon(), zIndexOffset:1000}).addTo(map);
 hotelMarker.bindPopup('<b>'+HOTEL.name+'</b><br><span style="font-size:11px;color:#888">'+HOTEL.checkIn+'</span><br>'+HOTEL.checkOut);
 document.getElementById('hotel-sub').textContent = HOTEL.checkIn + ' · ' + HOTEL.checkOut;
-document.getElementById('hotel-card').addEventListener('click', ()=>{ showView('map'); map.setView([HOTEL.lat,HOTEL.lng], 16, {animate:true}); hotelMarker.openPopup(); });
+document.getElementById('hotel-card').addEventListener('click', ()=>{ showView('map'); focusMapOnMobile(); map.setView([HOTEL.lat,HOTEL.lng], 16, {animate:true}); hotelMarker.openPopup(); });
 
 const airportMarker = L.marker([AIRPORT.lat, AIRPORT.lng], {icon: makeAirportIcon(), zIndexOffset:999}).addTo(map);
 airportMarker.bindPopup('<b>'+AIRPORT.name+'</b><br><span style="font-size:11px;color:#888">'+AIRPORT.arrival+'</span><br>'+AIRPORT.departure);
 document.getElementById('airport-sub').textContent = AIRPORT.arrival + ' · ' + AIRPORT.departure;
-document.getElementById('airport-card').addEventListener('click', ()=>{ showView('map'); map.setView([AIRPORT.lat,AIRPORT.lng], 13, {animate:true}); airportMarker.openPopup(); });
+document.getElementById('airport-card').addEventListener('click', ()=>{ showView('map'); focusMapOnMobile(); map.setView([AIRPORT.lat,AIRPORT.lng], 13, {animate:true}); airportMarker.openPopup(); });
 
 // free-text place search (Nominatim) so you can open any other location on the map
 let searchMarker = null;
@@ -690,6 +709,7 @@ function buildCard(p, latlng, marker, dayKey){
   body.addEventListener('click', (e)=>{
     if(e.target.closest('[data-vt]')) return;
     if(e.target.closest('a.gmaps-link')) return;
+    focusMapOnMobile();
     map.setView(latlng, 15, {animate:true});
     if(marker) marker.openPopup();
     document.getElementById('map-wrap').scrollIntoView({behavior:'smooth', block:'start'});
@@ -737,6 +757,28 @@ legend.innerHTML = Object.keys(CAT_LABEL).map(k=>'<span><i class="dot" style="ba
 document.getElementById('map-wrap').appendChild(legend);
 
 // ================= VIEW SWITCHING (bottom nav) =================
+let mobileSubView = 'list'; // on phones, start on the list — easier to browse than a squeezed map+list stack
+
+function applyMobileSubView(){
+  const main = document.getElementById('main');
+  const isMapView = main.classList.contains('view-map');
+  main.classList.toggle('mview-list', mobileSubView==='list');
+  main.classList.toggle('mview-map', mobileSubView==='map');
+  const fab = document.getElementById('mobile-view-fab');
+  fab.style.visibility = isMapView ? 'visible' : 'hidden';
+  fab.innerHTML = mobileSubView==='list' ? '🗺️ Карта' : '📋 Список';
+  if(isMapView && mobileSubView==='map') setTimeout(()=>map.invalidateSize(), 60);
+}
+document.getElementById('mobile-view-fab').addEventListener('click', ()=>{
+  mobileSubView = mobileSubView==='list' ? 'map' : 'list';
+  applyMobileSubView();
+});
+// tapping a place, the hotel, or the airport should jump straight to the map pane on mobile
+function focusMapOnMobile(){
+  mobileSubView = 'map';
+  applyMobileSubView();
+}
+
 function showView(view){
   const main = document.getElementById('main');
   main.classList.remove('view-map','view-budget','view-assistant');
@@ -745,6 +787,7 @@ function showView(view){
   if(view==='map'){ setTimeout(()=>map.invalidateSize(),60); }
   if(view==='budget'){ renderBudgetView(); }
   if(view==='assistant'){ renderAssistantView(); }
+  applyMobileSubView();
 }
 document.querySelectorAll('.bn-item').forEach(btn=>{
   btn.addEventListener('click', ()=>showView(btn.dataset.view));
@@ -1038,6 +1081,7 @@ if(SpeechRecognitionCtor){
 }
 
 renderDay(0);
+applyMobileSubView();
 </script>
 </body>
 </html>
