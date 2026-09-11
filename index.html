@@ -237,7 +237,7 @@
     main.view-map #map-wrap{ flex:1; height:auto; min-height:0; }
     main.view-map.mview-list #map-wrap{ display:none; }
     main.view-map.mview-map #sidebar{ display:none; }
-    main.view-map .mobile-view-fab{ display:flex; }
+    .mobile-view-fab{ display:flex; }
     #sidebar{ padding-bottom:90px; }
   }
 </style>
@@ -765,7 +765,7 @@ function applyMobileSubView(){
   main.classList.toggle('mview-list', mobileSubView==='list');
   main.classList.toggle('mview-map', mobileSubView==='map');
   const fab = document.getElementById('mobile-view-fab');
-  fab.style.visibility = isMapView ? 'visible' : 'hidden';
+  fab.style.display = isMapView ? 'flex' : 'none';
   fab.innerHTML = mobileSubView==='list' ? '🗺️ Карта' : '📋 Список';
   if(isMapView && mobileSubView==='map') setTimeout(()=>map.invalidateSize(), 60);
 }
